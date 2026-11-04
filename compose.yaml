@@ -1,0 +1,77 @@
+name: wordpress-demo
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?Copy .env.example to .env and configure it}
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -u root -p"$$MYSQL_ROOT_PASSWORD" --silent
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  wordpress:
+    image: wordpress:php8.2-apache
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WORDPRESS_PORT:-8080}:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
+      WORDPRESS_DB_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./theme/wordpress-demo:/var/www/html/wp-content/themes/wordpress-demo:ro
+      - ./plugin/interfacex-foundation:/var/www/html/wp-content/plugins/interfacex-foundation:ro
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+
+  wpcli:
+    image: wordpress:cli-php8.2
+    profiles:
+      - tools
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
+      WORDPRESS_DB_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      WORDPRESS_SITE_URL: http://localhost:${WORDPRESS_PORT:-8080}
+      WORDPRESS_SITE_TITLE: ${WORDPRESS_SITE_TITLE:?Set WORDPRESS_SITE_TITLE in .env}
+      WORDPRESS_ADMIN_USER: ${WORDPRESS_ADMIN_USER:?Set WORDPRESS_ADMIN_USER in .env}
+      WORDPRESS_ADMIN_PASSWORD: ${WORDPRESS_ADMIN_PASSWORD:?Set WORDPRESS_ADMIN_PASSWORD in .env}
+      WORDPRESS_ADMIN_EMAIL: ${WORDPRESS_ADMIN_EMAIL:?Set WORDPRESS_ADMIN_EMAIL in .env}
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./theme/wordpress-demo:/var/www/html/wp-content/themes/wordpress-demo:ro
+      - ./plugin/interfacex-foundation:/var/www/html/wp-content/plugins/interfacex-foundation:ro
+      - ./scripts:/opt/project/scripts:ro
+    working_dir: /var/www/html
+
+volumes:
+  db_data:
+  wordpress_data:

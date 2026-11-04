@@ -1,0 +1,46 @@
+.env
+.env.*
+!.env.example
+
+# WordPress core and local runtime
+/wordpress/
+/wp-admin/
+/wp-includes/
+/wp-config.php
+/wp-config-*.php
+/wp-*.php
+/index.php
+/xmlrpc.php
+/license.txt
+/readme.html
+/wp-content/uploads/
+/wp-content/cache/
+/wp-content/upgrade/
+/wp-content/debug.log
+/wp-content/advanced-cache.php
+/wp-content/object-cache.php
+/wp-content/db.php
+/db_data/
+
+# Database exports and local state
+*.sql
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.log
+
+# Dependencies, caches, and generated output
+**/node_modules/
+**/vendor/
+**/.cache/
+**/cache/
+**/caches/
+**/build/
+**/dist/
+/artifacts/
+*.tmp
+*.swp
+
+# Operating-system files
+.DS_Store
+Thumbs.db
