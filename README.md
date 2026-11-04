@@ -1,21 +1,15 @@
 # WordPress Demo
 
-A self-contained local WordPress demo. The custom theme owns the responsive landing page; the separate InterfaceX Foundation plugin provides the request form and workflow placeholders. The demo has no agent API connection: form entries stay in the browser and are neither transmitted nor saved.
-
-## Git repository status
-
-This project is maintained as a local Git repository on the primary branch `main`. No remote is configured; nothing is published. Do not add a guessed `origin` or push this project. A remote and repository URL must be supplied by the owner before any remote-based workflow is configured.
+A self-contained local WordPress demo. The custom theme owns the responsive landing page; the separate InterfaceX Foundation plugin hosts the existing InterfaceX React UI on `/interfacex/`. The WordPress target remains unavailable for agent execution.
 
 The `.gitignore` excludes the local `.env`, WordPress core/runtime files, database data and exports, uploads, dependency folders, caches, generated output, and local logs. `.env.example` contains replacement placeholders only. Keep real local credentials and WordPress runtime/database files out of commits.
 
-The agent's existing Git workflow requires a clean working tree, checks out its configured main branch, then pulls from a configured remote/branch pair; its commit and apply paths also rely on Git state and a remote. The current agent WordPress profile has no `main_branch` or `remote`, and this repository has no remote, so that workflow is not ready. After the owner supplies a real remote, the agent profile and WordPress-specific safety, baseline/verification, and Git integration must be implemented and reviewed before considering agent runs. WordPress agent runs remain disabled; this local repository setup does not grant run permission.
+The agent workflow has additional safety and Git readiness requirements. WordPress execution remains blocked; do not treat the repository remote as permission to run it.
 
 ## Prerequisites
 
 - Windows 10/11 with Docker Desktop and Docker Compose v2.
 - Docker Desktop must be running with its Linux container engine ready.
-
-Docker Desktop and Compose are installed in the workspace used to prepare this project, but the Linux engine currently returns HTTP 500 for Docker Engine API requests. Compose configuration can be checked locally, but the WordPress containers and pages have not been started or browser-tested. Start or repair Docker Desktop's Linux engine before following the first-start steps.
 
 ## First start
 
@@ -41,6 +35,24 @@ The script starts the database and WordPress, initializes WordPress on first run
 - WordPress admin: <http://localhost:8080/wp-admin/>
 
 Change `WORDPRESS_PORT` in `.env` to use another local port.
+
+## InterfaceX integration
+
+The `/interfacex/` page renders the existing InterfaceX React application from `demo_website`; it does not duplicate its workflow UI or use an iframe. The plugin enqueues the built JavaScript and stylesheet only when `[interfacex_request]` is rendered. The React app's API origin is fixed at build time to `http://localhost:8000`; it does not accept an API URL or target path from the browser.
+
+Build or rebuild the WordPress assets from the `demo_website` project after changing its InterfaceX source:
+
+```powershell
+Push-Location ..\demo_website
+npm.cmd run build:wordpress
+Pop-Location
+```
+
+The generated `plugin\interfacex-foundation\assets\app\interfacex-app.js` and `.css` are the only frontend build files needed by the plugin and are tracked so a fresh WordPress checkout can serve the page. Do not copy `node_modules`, local configuration, or environment files.
+
+The user must enter their own InterfaceX admin token in the embedded UI. It is handled by the existing frontend and stored in browser `sessionStorage` only; WordPress does not receive or store the token. The API must be running at `http://localhost:8000`, and its explicit CORS allowlist must include the WordPress page origin `http://localhost:8080`. For example, add that origin to the existing comma-separated `INTERFACEX_ALLOWED_ORIGINS` setting in the agent API's local environment, retaining only the origins you need, then restart the API. Do not use wildcard CORS. The build does not include or create credentials.
+
+The API-provided target list controls availability. React remains the default; WordPress is displayed as unavailable and cannot be selected for execution while the API reports it as disabled/coming soon. No WordPress agent workflow is started by this page.
 
 ## Start and stop
 
@@ -83,9 +95,8 @@ Replace the example path with this project's actual location. Local's installati
 
 - `compose.yaml` defines WordPress, MySQL, and a one-shot WP-CLI setup service.
 - `theme/wordpress-demo/` contains the custom landing-page theme.
-- `plugin/interfacex-foundation/` contains the InterfaceX request form and its local-only submit feedback; its `assets/` directory contains the small interaction script.
+- `plugin/interfacex-foundation/` contains the shortcode that mounts the existing InterfaceX UI and its built frontend assets.
 - `scripts/setup.ps1` and `scripts/bootstrap.php` perform repeatable local setup.
-- Edit the landing page in `theme/wordpress-demo/front-page.php` and its styles in `theme/wordpress-demo/style.css`. Edit the InterfaceX shell in `plugin/interfacex-foundation/interfacex-foundation.php`; rerun `.\scripts\setup.ps1` after changing the page bootstrap or plugin activation.
-- The target selector and request text are intentionally unnamed form controls and have no network or persistence handler. The button only displays a local notice that the integration is not connected.
+- Edit the landing page in `theme/wordpress-demo/front-page.php` and its styles in `theme/wordpress-demo/style.css`. Edit the InterfaceX mount point in `plugin/interfacex-foundation/interfacex-foundation.php`; rerun `.\scripts\setup.ps1` after changing the page bootstrap or plugin activation.
 - WordPress core, the database, and uploaded files are stored in named Docker volumes, not in this source tree.
 - `.env` is ignored by Git; `.env.example` contains placeholders only.
